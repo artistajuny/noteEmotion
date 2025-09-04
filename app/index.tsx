@@ -1,15 +1,8 @@
-import { View, Text, TouchableOpacity } from "react-native";
-import { Link } from "expo-router";
+import { Redirect } from "expo-router";
+import { useAuth } from "@/store/auth";
 
-export default function HomeScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text style={{ fontSize: 20, fontWeight: "700" }}>🏠 홈 화면</Text>
-      <Link href="/login" asChild>
-        <TouchableOpacity style={{ marginTop: 20, padding: 12, backgroundColor: "lightblue" }}>
-          <Text>로그인으로 이동</Text>
-        </TouchableOpacity>
-      </Link>
-    </View>
-  );
+export default function Index() {
+  const userId = useAuth((s) => s.userId);
+  if (!userId) return <Redirect href="/onboarding" />;
+  return <Redirect href="/home" />;
 }

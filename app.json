@@ -3,6 +3,7 @@
     "name": "emotion-app",
     "slug": "emotion-app",
     "version": "1.0.0",
+    "scheme": "emotionapp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
