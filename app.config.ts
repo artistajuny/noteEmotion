@@ -1,12 +1,35 @@
-export default {
+// app.config.ts
+import { ExpoConfig } from "expo/config";
+
+export default (): ExpoConfig => ({
   name: "emotion-app",
   slug: "emotion-app",
-  scheme: "emotion",
-  plugins: ["expo-router"],
+  version: "1.0.0",
+  scheme: "emotionapp",
+  icon: "./assets/icon.png",
+  userInterfaceStyle: "light",
+  newArchEnabled: true,
+  splash: {
+    image: "./assets/splash-icon.png",
+    resizeMode: "contain",
+    backgroundColor: "#ffffff",
+  },
+  ios: { supportsTablet: true },
   android: {
-    package: "com.anonymous.emotionapp",
+    adaptiveIcon: {
+      foregroundImage: "./assets/adaptive-icon.png",
+      backgroundColor: "#ffffff",
+    },
+    edgeToEdgeEnabled: true,
+    package: "com.byeonjunseok.emotionapp",
   },
-  ios: {
-    bundleIdentifier: "com.anonymous.emotionapp", // ✅ iOS 번들 아이디
-  },
-} as const;
+  web: { favicon: "./assets/favicon.png" },
+  plugins: [
+    [
+      "expo-build-properties",
+      {
+        android: { minSdkVersion: 24 },
+      },
+    ],
+  ],
+});

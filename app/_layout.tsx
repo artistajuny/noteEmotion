@@ -1,31 +1,26 @@
-// app/_layout.tsx
-import "react-native-get-random-values";
-import "react-native-url-polyfill/auto";
-
-import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+// app/_layout.tsx  ── 딥링크로 열린 URL을 세션으로 교환
 import { useEffect } from "react";
+import { Linking } from "react-native";
+import { Slot, router } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/store/auth";
-
-function SessionSync() {
-  const setUserId = useAuth((s) => s.setUserId);
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
-      setUserId(session?.user?.id ?? null)
-    );
-    return () => sub.subscription.unsubscribe();
-  }, []);
-  return null;
-}
 
 export default function RootLayout() {
-  return (
-    <>
-      <StatusBar style="dark" />
-      <SessionSync />
-      <Stack screenOptions={{ headerShown: false }} />
-    </>
-  );
+  useEffect(() => {
+    const handleUrl = async (url?: string | null) => {
+      if (!url) return;
+      // 이메일 매직링크/OTP로 열린 딥링크를 Supabase 세션으로 교환
+      const { error } = await supabase.auth.exchangeCodeForSession(url);
+      if (!error) {
+        // 온보딩 중이면 다음 단계로, 일반 진입이면 홈으로 라우팅해도 됨
+        // 필요시 커스텀 분기 추가
+      }
+    };
+
+    const sub = Linking.addEventListener("url", (e) => handleUrl(e.url));
+    Linking.getInitialURL().then((u) => handleUrl(u));
+
+    return () => sub.remove();
+  }, []);
+
+  return <Slot />;
 }
