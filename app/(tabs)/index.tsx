@@ -1,19 +1,26 @@
 // app/home.tsx
-import { useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, Alert, FlatList } from "react-native";
-import { router } from "expo-router";
+import { useMemo, useState, useEffect, useCallback } from "react";
+import { View, Text, TouchableOpacity, Alert, FlatList, ActivityIndicator } from "react-native";
+import { router, useFocusEffect } from "expo-router";
 import { useAuth } from "@/store/auth";
 
 /**
  * 홈: 헤더/인사 → 빠른 액션 → 추천 루틴 → 주간 스냅샷 → 프로모/업셀
- * - 게스트: 실행은 가능(체험) / 저장·즐겨찾기·카드공유는 가입 유도(소프트월)
- * - 로그인: 전체 기능 활성
  */
 export default function HomeScreen() {
-  const { email } = useAuth();
-  const isGuest = !email;
+  const { email, init, loading, userId } = useAuth();
 
-  // ▼ 더미 데이터(후에 API 연동/쿼리로 대체)
+  // 앱 진입 시 1회
+  useEffect(() => { init(); }, [init]);
+
+  // 탭으로 돌아올 때마다 재동기화(딥링크/온보딩 후 보장)
+  useFocusEffect(useCallback(() => { init(); }, [init]));
+
+  // 로딩 중엔 게스트로 판정하지 않음
+  const isGuest = !loading && !userId;
+  const nameForHeader = email ? email.split("@")[0] : "게스트";
+
+  // ▼ 더미 데이터
   const todayStr = useMemo(() => {
     const d = new Date();
     const m = `${d.getMonth() + 1}`.padStart(2, "0");
@@ -47,41 +54,26 @@ export default function HomeScreen() {
 
   // ▼ 빠른 액션
   const onQuickEmotion = () => {
-    // 게스트: 체험 모달 열었다고 가정(여기선 간단 안내)
-    if (isGuest) {
-      Alert.alert("체험 모드", "간단 감정 기록(인메모리) 진행!", [{ text: "확인" }]);
-      return;
-    }
-    // 로그인: 실제 기록 화면(추후 라우트 교체)
-    router.push("/routines"); // 임시: 감정기록 라우트 준비되면 교체
+    if (isGuest) return Alert.alert("체험 모드", "간단 감정 기록(인메모리) 진행!", [{ text: "확인" }]);
+    router.push("/emotion/new");
   };
+  const onQuickRoutine = () => router.push("/start");
 
-  const onQuickRoutine = () => {
-    // 바로 최근 루틴 실행(임시: 루틴 탭으로 이동)
-    router.push("/(tabs)/routines");
-  };
+  const onOpenMarket = () => router.push("/(tabs)/market");
 
-  const onOpenMarket = () => {
-    router.push("/(tabs)/market");
-  };
-
-  // ▼ 추천 루틴 클릭
-  const onPressRoutine = (item: { id: string; premium: boolean }) => {
-    if (item.premium) {
-      // 프리미엄은 소유권/로그인 필요 → 소프트월
-      return softWall("프리미엄 루틴은 계정이 필요해요.", () => {
-        // 로그인 유저면 상세로
-        router.push(`/(tabs)/routines`);
-      });
-    }
-    // 무료 루틴: 누구나 실행(게스트는 인메모리 실행로직, 로그인은 기록)
-    router.push(`/(tabs)/routines`);
-  };
+  // 로딩 상태 UI
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 16 }}>
       {/* 헤더 */}
-      <HomeHeader name={email ?? "게스트"} dateLabel={todayStr} isGuest={isGuest} />
+      <HomeHeader name={nameForHeader} dateLabel={todayStr} isGuest={!!isGuest} />
 
       {/* 빠른 액션 */}
       <QuickActions
@@ -90,7 +82,7 @@ export default function HomeScreen() {
         onOpenMarket={onOpenMarket}
       />
 
-      {/* 추천 루틴(게스트도 노출 / 프리미엄은 소프트월) */}
+      {/* 추천 루틴 */}
       <SectionTitle title="추천 루틴" />
       <FlatList
         data={recommended}
@@ -103,18 +95,24 @@ export default function HomeScreen() {
             title={item.title}
             minutes={item.minutes}
             premium={item.premium}
-            onPress={() => onPressRoutine(item)}
+            onPress={() => {
+              if (item.premium) return softWall("프리미엄 루틴은 계정이 필요해요.", () => router.push("/(tabs)/routines"));
+              router.push("/(tabs)/routines");
+            }}
           />
         )}
       />
 
-      {/* 주간 스냅샷(간략 프리뷰) */}
+      {/* 주간 스냅샷 */}
       <SectionTitle title="이번 주 스냅샷" />
-      <WeeklySnapshot isGuest={isGuest} onNeedLogin={() => softWall("리포트를 저장/조회하려면 로그인해주세요.")} />
+      <WeeklySnapshot
+        isGuest={!!isGuest}
+        onNeedLogin={() => softWall("리포트를 저장/조회하려면 로그인해주세요.")}
+      />
 
       {/* 프로모/업셀 */}
       <PromoBanner
-        isGuest={isGuest}
+        isGuest={!!isGuest}
         onPress={() =>
           isGuest
             ? softWall("루틴 카드 공유는 로그인 후 이용할 수 있어요.")
@@ -125,8 +123,7 @@ export default function HomeScreen() {
   );
 }
 
-/* ========== UI 컴포넌트(간단 스켈레톤) ========== */
-
+/* ========== 아래 컴포넌트 동일 ========== */
 function HomeHeader({ name, dateLabel, isGuest }: { name: string; dateLabel: string; isGuest: boolean }) {
   return (
     <View style={{ gap: 6 }}>
@@ -243,9 +240,7 @@ function WeeklySnapshot({ isGuest, onNeedLogin }: { isGuest: boolean; onNeedLogi
       }}
     >
       <Text style={{ fontSize: 14, fontWeight: "700" }}>감정/루틴 요약</Text>
-      <Text style={{ fontSize: 12, color: "#666" }}>
-        이번 주 완료 루틴 0회 · 평균 감정지수 — {/* 연동 전 플레이스홀더 */}
-      </Text>
+      <Text style={{ fontSize: 12, color: "#666" }}>이번 주 완료 루틴 0회 · 평균 감정지수 —</Text>
       {!isGuest && expanded && (
         <View style={{ backgroundColor: "#eee", borderRadius: 8, padding: 10 }}>
           <Text style={{ fontSize: 12, color: "#333" }}>세부 리포트(차트 자리)</Text>

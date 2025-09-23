@@ -18,7 +18,7 @@ export default function Step2Consents() {
       ["ob_terms_ver", "v1"],
       ["ob_privacy_ver", "v1"],
     ]);
-    router.replace("/(onboarding)/step3-email");
+    router.push("/(onboarding)/step3-email");
   };
 
   return (

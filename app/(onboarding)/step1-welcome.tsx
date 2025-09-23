@@ -2,12 +2,16 @@
 import { useEffect, useRef } from "react";
 import { View, Text, TouchableOpacity, Animated, Easing, Image } from "react-native";
 import { router } from "expo-router";
-import { supabase } from "@/lib/supabase";
 
 export default function Step1Welcome() {
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.92)).current;
   const float = useRef(new Animated.Value(0)).current;
+
+  // ✅ 둘러보기: 플래그 저장 안 함(세션 종료 후 재실행하면 온보딩으로)
+  const browseGuest = () => {
+    router.replace("/(tabs)");
+  };
 
   useEffect(() => {
     Animated.parallel([
@@ -23,7 +27,7 @@ export default function Step1Welcome() {
     ).start();
   }, [fade, scale, float]);
 
-  const goNext = () => router.replace("/(onboarding)/step2-consents");
+  const goNext = () => router.push("/(onboarding)/step2-consents");
 
   return (
     <View style={{ flex: 1, backgroundColor: "#0b0f1a", padding: 24, justifyContent: "center" }}>
@@ -47,30 +51,13 @@ export default function Step1Welcome() {
         </TouchableOpacity>
 
         {/* 이미 가입한 유저용 로그인 링크 */}
-        <TouchableOpacity
-          onPress={() => router.replace("/(auth)/login")}
-          style={{ marginTop: 16, alignSelf: "center" }}
-        >
-          <Text style={{ color: "#bbb", fontSize: 14, textDecorationLine: "underline" }}>
-            이미 계정이 있어요
-          </Text>
+        <TouchableOpacity onPress={() => router.replace("/(auth)/login")} style={{ marginTop: 16, alignSelf: "center" }}>
+          <Text style={{ color: "#bbb", fontSize: 14, textDecorationLine: "underline" }}>이미 계정이 있어요</Text>
         </TouchableOpacity>
 
-        {/* 그냥 둘러보기 (게스트 모드) */}
-        <TouchableOpacity
-          onPress={async () => {
-            // 혹시 남아있을 수 있는 예전 세션 정리
-            try { await supabase.auth.signOut(); } catch {}
-            // 홈으로 진입 (게스트)
-            router.replace("/");
-          }}
-          style={{ marginTop: 10, alignSelf: "center" }}
-          accessibilityRole="button"
-          accessibilityLabel="그냥 둘러보기"
-        >
-          <Text style={{ color: "#9aa7ff", fontSize: 14, textDecorationLine: "underline" }}>
-            그냥 둘러보기
-          </Text>
+        {/* 그냥 둘러보기 (세션 살아있는 동안만) */}
+        <TouchableOpacity onPress={browseGuest} style={{ marginTop: 10, alignSelf: "center" }}>
+          <Text style={{ color: "#9aa7ff", fontSize: 14, textDecorationLine: "underline" }}>그냥 둘러보기</Text>
         </TouchableOpacity>
       </Animated.View>
     </View>
